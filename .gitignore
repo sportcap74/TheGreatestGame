@@ -1,0 +1,68 @@
+# ---------------------------------------
+#   VISUAL STUDIO
+# ---------------------------------------
+.vs/
+*.vcxproj.user
+*.vcxproj.filters
+*.suo
+*.user
+*.cache
+*.pdb
+*.ipch
+*.tlog
+*.obj
+*.idb
+*.log
+*.ilk
+*.aps
+*.ncb
+*.opendb
+*.VC.db
+
+# Build directories
+Debug/
+Release/
+x64/
+x86/
+bin/
+build/
+
+# ---------------------------------------
+#   C++ / COMPILER ARTEFACTS
+# ---------------------------------------
+*.exe
+*.dll
+*.lib
+*.exp
+*.o
+*.a
+
+# ---------------------------------------
+#   RAYLIB / MEDIA ASSETS
+# ---------------------------------------
+*.png
+*.jpg
+*.jpeg
+*.bmp
+*.tga
+*.gif
+*.wav
+*.ogg
+*.mp3
+*.ttf
+
+# ---------------------------------------
+#   CMAKE (om du använder det)
+# ---------------------------------------
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+
+# ---------------------------------------
+#   MISC
+# ---------------------------------------
+*.DS_Store
+*.tmp
+*.bak
+*.swp
