@@ -1,0 +1,232 @@
+#include "raylib.h"
+
+/*
+Plan (pseudocode):
+1. Add global state for the collectable:
+   - x position
+   - y position
+   - radius
+   - spawned flag
+2. In the main game loop, while the game is active:
+   - draw the axe
+   - update and draw the player circle
+   - if the player did not hit the axe, update/draw the collectable
+3. In `spawn_collect()`:
+   - if no collectable is currently spawned:
+     - use the player's position relative to the axe to decide which side to place it on
+     - if player is left of the axe, spawn on the right side
+     - otherwise spawn on the left side
+     - choose a random y position inside the screen bounds
+   - draw the collectable
+   - check circle-vs-circle collision between player and collectable
+   - if collected:
+     - increase score
+     - mark collectable as not spawned
+     - immediately spawn a new one on the opposite side again
+   - draw the score text
+4. In `ResetGame()`:
+   - reset the collectable spawned flag so a new pickup is created for the new round
+*/
+
+void drawAxe();
+void drawCircle();
+void DrawGameOver();
+void ResetGame();
+void spawn_collect();
+
+int axeSpeed = 25;
+int yPos = 0;
+int score = 0;
+
+int width = 800;
+int height = 600;
+int targetFPS = 60;
+
+int circleX = 0;
+int circleY = 0;
+int circleSpeed = 25;
+
+int screenWidth;
+int screenHeight;
+
+int collectX = 0;
+int collectY = 0;
+int collectRadius = 15;
+bool collectSpawned = false;
+
+bool isGameOver = false;
+
+int main()
+{
+	const char* title = "Axe Game";
+
+	SetConfigFlags(FLAG_WINDOW_RESIZABLE);
+	InitWindow(width, height, title);
+	SetTargetFPS(targetFPS);
+
+	ResetGame();
+
+	while (!WindowShouldClose())
+	{
+		screenWidth = GetScreenWidth();
+		screenHeight = GetScreenHeight();
+
+		BeginDrawing();
+		ClearBackground(BLACK);
+
+		if (isGameOver)
+		{
+			DrawGameOver();
+
+			if (GetKeyPressed() != 0)
+			{
+				ResetGame();
+			}
+		}
+		else
+		{
+			drawAxe();
+			drawCircle();
+
+			if (!isGameOver)
+			{
+				spawn_collect();
+			}
+		}
+
+		EndDrawing();
+	}
+
+	CloseWindow();
+	return 0;
+}
+
+void drawAxe()
+{
+	int axeLength = 50;
+	yPos += axeSpeed;
+
+	DrawRectangle(screenWidth / 2, yPos, axeLength, axeLength, RED);
+
+	if (yPos > screenHeight - axeLength || yPos < 0)
+	{
+		axeSpeed = -axeSpeed;
+	}
+}
+
+void drawCircle()
+{
+	int circleRadius = 25;
+	int axeX = screenWidth / 2;
+	int axeY = yPos;
+	int axeSize = 50;
+
+	bool collisionWithAxe =
+		axeY + axeSize >= circleY - circleRadius &&
+		axeY <= circleY + circleRadius &&
+		axeX + axeSize >= circleX - circleRadius &&
+		axeX <= circleX + circleRadius;
+
+	if (collisionWithAxe)
+	{
+		isGameOver = true;
+		return;
+	}
+
+	if (IsKeyDown(KEY_RIGHT))
+	{
+		circleX += circleSpeed;
+	}
+	if (IsKeyDown(KEY_LEFT))
+	{
+		circleX -= circleSpeed;
+	}
+	if (IsKeyDown(KEY_UP))
+	{
+		circleY -= circleSpeed;
+	}
+	if (IsKeyDown(KEY_DOWN))
+	{
+		circleY += circleSpeed;
+	}
+
+	if (circleX < circleRadius) circleX = circleRadius;
+	if (circleX > screenWidth - circleRadius) circleX = screenWidth - circleRadius;
+	if (circleY < circleRadius) circleY = circleRadius;
+	if (circleY > screenHeight - circleRadius) circleY = screenHeight - circleRadius;
+
+	DrawCircle(circleX, circleY, circleRadius, RED);
+}
+
+void DrawGameOver()
+{
+	DrawText("Game Over!", screenWidth / 2 - 80, screenHeight / 2 - 30, 30, RED);
+	DrawText("Press any key to play again", screenWidth / 2 - 150, screenHeight / 2 + 10, 20, WHITE);
+}
+
+void ResetGame()
+{
+	screenWidth = GetScreenWidth();
+	screenHeight = GetScreenHeight();
+
+	yPos = screenHeight / 2;
+	circleX = 100;
+	circleY = screenHeight / 2;
+	axeSpeed = 25;
+	score = 0;
+	collectSpawned = false;
+	isGameOver = false;
+}
+
+void spawn_collect()
+{
+	int axeX = screenWidth / 2;
+	int axeSize = 50;
+	int circleRadius = 25;
+	int padding = 10;
+
+	if (!collectSpawned)
+	{
+		int minX;
+		int maxX;
+
+		if (circleX < axeX)
+		{
+			minX = axeX + axeSize + collectRadius + padding;
+			maxX = screenWidth - collectRadius - padding;
+		}
+		else
+		{
+			minX = collectRadius + padding;
+			maxX = axeX - collectRadius - padding;
+		}
+
+		if (minX > maxX)
+		{
+			minX = collectRadius + padding;
+			maxX = screenWidth - collectRadius - padding;
+		}
+
+		collectX = GetRandomValue(minX, maxX);
+		collectY = GetRandomValue(collectRadius + padding, screenHeight - collectRadius - padding);
+		collectSpawned = true;
+	}
+
+	DrawCircle(collectX, collectY, collectRadius, GREEN);
+
+	bool collected = CheckCollisionCircles(
+		Vector2{ static_cast<float>(circleX), static_cast<float>(circleY) },
+		static_cast<float>(circleRadius),
+		Vector2{ static_cast<float>(collectX), static_cast<float>(collectY) },
+		static_cast<float>(collectRadius));
+
+	if (collected)
+	{
+		score++;
+		collectSpawned = false;
+		spawn_collect();
+		return;
+	}
+
+	DrawText(TextFormat("Score: %i", score), 20, 20, 30, WHITE);
+}
